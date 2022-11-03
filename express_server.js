@@ -1,4 +1,5 @@
 const express = require("express");
+const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = 8080;
 
@@ -9,6 +10,13 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  Egg: {
+    username: "Egg",
+    password: "shell"
+  }
+}
+
 const generateRandomString = function() {
   let randString = "";
   let characters = "abcdefghijklmnopqrstuvwxyz1234567890"
@@ -17,6 +25,11 @@ const generateRandomString = function() {
   }
   return randString;
 }
+
+app.use(cookieParser());
+app.use(express.urlencoded({
+  extended: true
+}));
 
 // Home page
 app.get("/", (req, res) => {
@@ -47,16 +60,25 @@ app.get("/hello", (req, res) => {
 
 // IMPORTANT: Keep this one before /urls/:id
 app.get("/urls/new", (req, res) => {
+  let templateVars = {
+    username: req.cookies.username
+  };
   res.render("urls_new");
 });
 
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
+  const templateVars = {
+    id: req.params.id,
+    longURL: urlDatabase[req.params.id]
+  };
   res.render("urls_show", templateVars);
 });
 
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = {
+    urls: urlDatabase,
+    username: req.cookies.username
+  };
   res.render("urls_index", templateVars);
 });
 
@@ -79,5 +101,32 @@ app.post("/urls/:id", (req, res) => {
   const urlTag = req.params.id;
   urlDatabase[urlTag] = req.body.longURL;
   console.log("Pressed Edit");
+  res.redirect("/urls");
+})
+
+app.post("/login", (req, res) => {
+  let username = req.body.username;
+  if (username) {
+    res.cookie("username", username);
+    res.redirect("/urls");
+  }
+  else{
+    res.send("No username");
+  }
+})
+
+app.post("/logout", (req, res) => {
+  res.clearCookie("username");
+  res.redirect("/urls");
+})
+
+app.get("/register", (req, res) => {
+  let templateVars = {
+    username: req.cookies.username
+  };
+  res.render("urls_register", templateVars);
+});
+
+app.post("/register", (req, res) => {
   res.redirect("/urls");
 })
