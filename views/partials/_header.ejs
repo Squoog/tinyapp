@@ -8,8 +8,7 @@
       data-target="#navbarNavAltMarkup"
       aria-controls="navbarNavAltMarkup"
       aria-expanded="false"
-      aria-label="Toggle navigation"
-    >
+      aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
@@ -20,8 +19,20 @@
     </div>
 
     <div>
-      <button form="login" type="submit">Login</button>
+      <% if(!user) { %>
+      <form method="POST" action="/login" id="login">
+        <input name="username" placeholder="Username" class="form-control round"
+          style="margin-right: 10px; width: 200px" />
+      </form>
     </div>
-    
+    <div>
+      <button form="login" type="submit" class="btn btn-outline-dark">Login</button>
+    </div>
+    <% } else {%>
+    <form method="POST" action="/logout">
+      Logged In As: <%= user.email%>!<button type="submit" class="btn btn-outline-dark"
+        style="margin-left: 15px">Logout</button>
+    </form>
+    <% } %>
   </nav>
 </header>

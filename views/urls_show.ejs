@@ -12,19 +12,20 @@
   </head>
 
   <body>
-    <%- include("partials/_header") %>
     <div class="card text-center">
       <div class="card-header"></div>
       <div class="card-body">
         <h5 class="card-title">TinyURL for: <%= longURL %></h5>
         <p class="card-text">
-          Short URL ID: <a href="/u/<%= id %>"><%= id %></a>
+          Short URL ID: <a href="/u/<%= shortURL %>"><%= shortURL %></a>
         </p>
       </div>
       <div class="card-footer text-muted">
         <div class="mx-auto" style="width: 480px;">
           <h2 class="card-title" style="margin:auto">Edit URL</h2>
-        <form class="form-inline" action="/urls/<%= id %>" method="POST">
+        <form class="form-inline"
+              action="/urls/<%= shortURL %>"
+              method="POST">
           <div class="form-group mb-2">
             <label for="longURL">New URL:</label>
             <input
