@@ -38,9 +38,7 @@ const generateRandomString = function () {
 };
 
 const emailChecker = (expectedEmail, actualEmail) => {
-  if (expectedEmail === actualEmail) {
-    return true;
-  }
+  return (expectedEmail === actualEmail);
 };
 
 app.use(cookieParser());
@@ -101,25 +99,17 @@ app.get('/urls/:shortURL', (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-app.get("/urls/:shortURL", (req, res) => { // still need?
-  const shortURL = req.params.shortURL;
-  const userID = req.cookies.user_id;
-  const user = users[userID];
-
-  let templateVars = {
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL],
-    user
-  };
-  res.render("urls_show", templateVars);
-});
-
 // Adds a new url
 app.post("/urls", (req, res) => {
   console.log(req.body);
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = req.body.longURL;
   res.redirect("/urls");
+});
+
+app.get("/u/:shortURL", (req, res) => {
+  const longURL = urlDatabase[req.params.shortURL];
+  res.redirect(longURL);
 });
 
 // Delete
@@ -185,6 +175,18 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
 });
 
+app.get("/urls/:shortURL", (req, res) => { // still need?
+  const userID = req.cookies.user_id;
+  const user = users[userID];
+
+  let templateVars = {
+    shortURL: req.params.shortURL,
+    longURL: urlDatabase[req.params.shortURL],
+    user
+  };
+  res.render("urls_show", templateVars);
+});
+
 app.get("/login", (req, res) => {
   const userID = req.cookies.user_id;
   const user = users[userID];
@@ -195,3 +197,5 @@ app.get("/login", (req, res) => {
 
   res.render("urls_login", templateVars);
 });
+
+app.post("/login", (req, res) => {});

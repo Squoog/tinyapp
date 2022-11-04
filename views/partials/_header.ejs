@@ -18,16 +18,11 @@
       </div>
     </div>
 
-    <div>
       <% if(!user) { %>
-      <form method="POST" action="/login" id="login">
-        <input name="username" placeholder="Username" class="form-control round"
-          style="margin-right: 10px; width: 200px" />
-      </form>
-    </div>
-    <div>
-      <button form="login" type="submit" class="btn btn-outline-dark">Login</button>
-    </div>
+        <div class="navbar-nav">
+          <a class="nav-item nav-link" href="/login">Login</a>
+          <a class="nav-item nav-link" href="/register">Register user</a>
+        </div>
     <% } else {%>
     <form method="POST" action="/logout">
       Logged In As: <%= user.email%>!<button type="submit" class="btn btn-outline-dark"
