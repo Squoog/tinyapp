@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
 
@@ -98,7 +99,8 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/urls", (req, res) => {
 
   if (!req.cookies.user_id) {
-    res.status(401).send("Request cannot be completed. Please log in.");
+    // /res.status(401).send("Request cannot be completed. Please log in.");
+    res.redirect("/login");
   }
 
   const user_id = req.cookies["user_id"];
@@ -108,6 +110,7 @@ app.get("/urls", (req, res) => {
     user: users[user_id]
   };
 
+  console.log(templateVars.urls);
   res.render("urls_index", templateVars);
 });
 
@@ -129,20 +132,21 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new", templateVars);
 });
 
+//Edit
 app.get('/urls/:shortURL', (req, res) => {
   const shortURL = req.params.shortURL;
   const userID = req.cookies.user_id;
   const user = users[userID];
-
-  console.log(user);
 
   let templateVars = {
     shortURL: shortURL,
     longURL: urlDatabase[shortURL].longURL,
     user
   }
-  if (!(Object.values(user).includes(shortURL))) {
-    res.status(404).send("Page could not be found");
+
+  console.log(Object.keys(urlsForUser(userID, urlDatabase)));
+  if (!(Object.keys(urlsForUser(userID, urlDatabase)).includes(shortURL))) {
+    res.status(403).send("You do not have authorization to use this link.");
     return;
   }
   if (!user) {
@@ -164,7 +168,7 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  const shortURL = req.params.id;
+  const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
   if (!longURL) {
     res.status(400).send("Invalid URL");
@@ -174,16 +178,19 @@ app.get("/u/:shortURL", (req, res) => {
 
 // Delete
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const shortURL = req.params.id;
+  const shortURL = req.params.shortURL;
 
   if (urlDatabase[shortURL] === undefined) {
     res.status(404).send("ID not found");
+    return;
   }
   if (!req.cookies.user_id) {
     res.status(401);
+    return;
   }
-  if (req.cookies.user_id !== urlDatabase[req.params.id].userID) {
+  if (req.cookies.user_id !== urlDatabase[req.params.shortURL].userID) {
     res.status(403).send("URL cannot be accessed");
+    return;
   }
   delete urlDatabase[shortURL];
   const templateVars = {
@@ -196,7 +203,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 // Edit
 app.post("/urls/:shortURL", (req, res) => {
   const urlTag = req.params.shortURL;
-  urlDatabase[urlTag] = req.body;
+  urlDatabase[urlTag].longURL = req.body.longURL;
   console.log("Link edit");
   res.redirect("/urls");
 });
@@ -206,7 +213,8 @@ app.post("/login", (req, res) => {
   let userPW = req.body.password;
   let userTemp = findUserByEmail(users, userEmail);
   console.log(userTemp);
-  if (userTemp && userTemp.password === userPW) {
+  console.log(userTemp.password);
+  if (userTemp && bcrypt.compareSync(userPW, userTemp.password)) {
     res.cookie("user_id", userTemp.id);
     return res.redirect("/urls");
   }
@@ -244,11 +252,11 @@ app.post("/register", (req, res) => {
     res.status(400).send("Email already registered");
     return;
   }
-
+  const hashedPW = bcrypt.hashSync(req.body.password, 10)
   const user = {
     id: randomID,
     email: emailTemp,
-    password: req.body.password,
+    password: hashedPW,
   };
 
   users[randomID] = user;
@@ -257,23 +265,23 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
 });
 
-app.get("/urls/:shortURL", (req, res) => { // still need?
-  const userID = req.cookies.user_id;
-  const user = users[userID];
+// app.get("/urls/:shortURL", (req, res) => { // still need?
+//   const userID = req.cookies.user_id;
+//   const user = users[userID];
 
-  if (!req.cookies.user_id) {
-    res.status(401).send("Please log in to access this link.");
-  } else if (req.cookies.user_id !== urlDatabase[req.params.id].userID) {
-    res.status(403).send("You do not have authorization to use this link.");
-  }
+//   if (!req.cookies.user_id) {
+//     res.status(401).send("Please log in to access this link.");
+//   } else if (req.cookies.user_id !== urlDatabase[req.params.id].userID) {
+//     res.status(403).send("You do not have authorization to use this link.");
+//   }
 
-  let templateVars = {
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL],
-    user
-  };
-  res.render("urls_show", templateVars);
-});
+//   let templateVars = {
+//     shortURL: req.params.shortURL,
+//     longURL: urlDatabase[req.params.shortURL],s
+//     user
+//   };
+//   res.render("urls_show", templateVars);
+// });
 
 app.get("/login", (req, res) => {
   const userID = req.cookies.user_id;
