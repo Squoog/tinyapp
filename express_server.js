@@ -63,6 +63,16 @@ const userURLs = (id) => {
   return userURLs;
 }
 
+const urlsForUser = (id, database) => {
+  let userURL = {};
+  for (let shortURL in database) {
+    if (database[shortURL].userID === id) {
+      userURL[shortURL] = database[shortURL];
+    }
+  }
+  return userURL;
+};
+
 app.use(cookieParser());
 app.use(express.urlencoded({
     extended: true,
@@ -86,13 +96,15 @@ app.get("/urls.json", (req, res) => {
 app.use(express.urlencoded({ extended: true }));
 
 app.get("/urls", (req, res) => {
-  //const userID = req.cookies.user;
-  //const user = users[userID];
+
+  if (!req.cookies.user_id) {
+    res.status(401).send("Request cannot be completed. Please log in.");
+  }
 
   const user_id = req.cookies["user_id"];
   console.log("Test", user_id);
   let templateVars = {
-    urls: urlDatabase,
+    urls: urlsForUser(req.cookies.user_id, urlDatabase),
     user: users[user_id]
   };
 
@@ -129,7 +141,10 @@ app.get('/urls/:shortURL', (req, res) => {
     longURL: urlDatabase[shortURL].longURL,
     user
   }
-
+  if (!(Object.values(user).includes(shortURL))) {
+    res.status(404).send("Page could not be found");
+    return;
+  }
   if (!user) {
     res.redirect('/login');
   }
@@ -138,20 +153,43 @@ app.get('/urls/:shortURL', (req, res) => {
 
 // Adds a new url
 app.post("/urls", (req, res) => {
-  console.log(req.body);
-  const shortURL = generateRandomString();
-  urlDatabase[shortURL] = {longURL: req.body.longURL, userID: req.cookies.user_id};
-  res.redirect(`/urls/${shortURL}`);
+  if (!req.cookies.user_id) {
+    res.status(401).send("Please log in to gain access to this.");
+  }
+  else{
+    const shortURL = generateRandomString();
+    urlDatabase[shortURL] = {longURL: req.body.longURL, userID: req.cookies.user_id};
+    res.redirect("/urls");
+  }
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL].longURL;
+  const shortURL = req.params.id;
+  const longURL = urlDatabase[shortURL].longURL;
+  if (!longURL) {
+    res.status(400).send("Invalid URL");
+  }
   res.redirect(longURL);
 });
 
 // Delete
 app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
+  const shortURL = req.params.id;
+
+  if (urlDatabase[shortURL] === undefined) {
+    res.status(404).send("ID not found");
+  }
+  if (!req.cookies.user_id) {
+    res.status(401);
+  }
+  if (req.cookies.user_id !== urlDatabase[req.params.id].userID) {
+    res.status(403).send("URL cannot be accessed");
+  }
+  delete urlDatabase[shortURL];
+  const templateVars = {
+    urls: urlDatabase,
+    user: users[req.cookies.user_id]
+  }
   res.redirect("/urls");
 });
 
@@ -222,6 +260,12 @@ app.post("/register", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => { // still need?
   const userID = req.cookies.user_id;
   const user = users[userID];
+
+  if (!req.cookies.user_id) {
+    res.status(401).send("Please log in to access this link.");
+  } else if (req.cookies.user_id !== urlDatabase[req.params.id].userID) {
+    res.status(403).send("You do not have authorization to use this link.");
+  }
 
   let templateVars = {
     shortURL: req.params.shortURL,
